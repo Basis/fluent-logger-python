@@ -61,7 +61,9 @@ class FluentSender(object):
             tag = '.'.join((self.tag, label))
         else:
             tag = self.tag
-        packet = (tag, timestamp, data)
+        packet = data
+        packet['label'] = tag
+        packet['time'] = timestamp
         if self.verbose:
             print(packet)
         return json.dumps(packet) if self.udp else msgpack.packb(packet)
