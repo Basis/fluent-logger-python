@@ -6,7 +6,7 @@ import threading
 import time
 
 import msgpack
-
+import ujson as json
 
 _global_sender = None
 
@@ -30,7 +30,8 @@ class FluentSender(object):
                  port=24224,
                  bufmax=1 * 1024 * 1024,
                  timeout=3.0,
-                 verbose=False):
+                 verbose=False,
+                 udp=False):
 
         self.tag = tag
         self.host = host
@@ -38,6 +39,7 @@ class FluentSender(object):
         self.bufmax = bufmax
         self.timeout = timeout
         self.verbose = verbose
+        self.udp = udp
 
         self.socket = None
         self.pendings = None
@@ -65,12 +67,15 @@ class FluentSender(object):
         packet = (tag, timestamp, data)
         if self.verbose:
             print(packet)
-        return msgpack.packb(packet)
+        return json.dumps(packet) if self.udp else msgpack.packb(packet)
 
     def _send(self, bytes_):
         self.lock.acquire()
         try:
-            self._send_internal(bytes_)
+            if self.udp:
+                self.socket.sendto(bytes_, (self.host, self.port))
+            else:
+                self._send_internal(bytes_)
         finally:
             self.lock.release()
 
@@ -101,7 +106,9 @@ class FluentSender(object):
 
     def _reconnect(self):
         if not self.socket:
-            if self.host.startswith('unix://'):
+            if self.udp:
+                sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            elif self.host.startswith('unix://'):
                 sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
                 sock.settimeout(self.timeout)
                 sock.connect(self.host[len('unix://'):])

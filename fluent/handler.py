@@ -62,12 +62,14 @@ class FluentHandler(logging.Handler):
                  host='localhost',
                  port=24224,
                  timeout=3.0,
-                 verbose=False):
+                 verbose=False,
+                 udp=False):
 
         self.tag = tag
         self.sender = sender.FluentSender(tag,
                                           host=host, port=port,
-                                          timeout=timeout, verbose=verbose)
+                                          timeout=timeout, verbose=verbose,
+                                          udp=udp)
         logging.Handler.__init__(self)
 
     def emit(self, record):
