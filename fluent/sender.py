@@ -28,6 +28,7 @@ class FluentSender(object):
                  bufmax=1 * 1024 * 1024,
                  timeout=3.0,
                  verbose=False,
+                 pack_msg=False,
                  udp=False):
 
         self.tag = tag
@@ -37,6 +38,7 @@ class FluentSender(object):
         self.timeout = timeout
         self.verbose = verbose
         self.udp = udp
+        self.pack_msg = pack_msg
 
         self.socket = None
         self.pendings = None
@@ -66,7 +68,14 @@ class FluentSender(object):
         packet['time'] = timestamp
         if self.verbose:
             print(packet)
-        return json.dumps(packet) if self.udp else msgpack.packb(packet)
+        if self.pack_msg:
+            return msgpack.packb(packet)
+        else:
+            if self.udp:
+                return json.dumps(packet)
+            else:
+                # tcp needs a delimiter
+                return '%s\n' % json.dumps(packet)
 
     def _send(self, bytes_):
         self.lock.acquire()
